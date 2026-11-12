@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipping Dashboard</title>
+<style>
+  :root {
+    --page: #0d0d0d;  --card: #1a1a19;  --line: rgba(255,255,255,.08);
+    --text: #f0efec;  --text-2: #c3c2b7; --muted: #898781;
+    --accent: #3987e5; --accent-soft: rgba(57,135,229,.14);
+    /* Ampelfarben: Fläche (…) und gut lesbare Textvariante (…-t) */
+    --good: #0ca30c; --good-t: #55cf55;
+    --warn: #fab219; --warn-t: #fab219;
+    --crit: #d03b3b; --crit-t: #f47a7a;
+    --grid: #2c2c2a; --axis: #383835;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--text); -webkit-font-smoothing: antialiased;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(900px 420px at 12% -8%, rgba(57,135,229,.13), transparent 70%),
+      radial-gradient(700px 380px at 95% -10%, rgba(98,80,214,.10), transparent 70%),
+      var(--page);
+    background-repeat: no-repeat; min-height: 100vh;
+  }
+  svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2;
+           stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .app { max-width: 1320px; margin: 0 auto; padding: 28px clamp(16px, 3vw, 36px) 40px;
+         display: grid; gap: 18px; }
+
+  /* ---------- Kopfzeile ---------- */
+  .kopf { display: flex; align-items: center; gap: 14px 28px; flex-wrap: wrap; margin-bottom: 6px; }
+  .marke { display: flex; align-items: center; gap: 14px; margin-right: auto; min-width: 0; }
+  .logo { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center;
+          font-size: 24px; color: #fff; background: linear-gradient(135deg, #3987e5, #6250d6);
+          box-shadow: 0 8px 24px rgba(57,135,229,.35); }
+  .firma { font-size: 21px; font-weight: 650; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .firma-sub { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+  .tag { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+         padding: 3px 8px; border-radius: 999px; color: var(--text-2);
+         border: 1px solid var(--line); background: rgba(255,255,255,.04); }
+  .zeit { text-align: right; }
+  .uhr { font-size: 28px; font-weight: 650; letter-spacing: -.01em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .datum { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+  .status { display: flex; align-items: center; gap: 12px; padding: 10px 20px 10px 12px;
+            border-radius: 999px; border: 1px solid; min-width: 0; }
+  .status .punkt { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+                   font-size: 20px; color: #0d0d0d; position: relative; flex: none; }
+  .status .punkt::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+                          background: inherit; opacity: .5; animation: puls 2.4s ease-out infinite; z-index: -1; }
+  .status b { display: block; font-size: 16.5px; font-weight: 650; }
+  .status span { display: block; font-size: 12.5px; color: var(--text-2); }
+  .status.gruen { background: rgba(12,163,12,.12);  border-color: rgba(12,163,12,.45); }
+  .status.gelb  { background: rgba(250,178,25,.10); border-color: rgba(250,178,25,.45); }
+  .status.rot   { background: rgba(208,59,59,.14);  border-color: rgba(208,59,59,.55); }
+  .status.gruen .punkt { background: var(--good); color: #fff; }
+  .status.gelb  .punkt { background: var(--warn); }
+  .status.rot   .punkt { background: var(--crit); color: #fff; }
+
+  /* ---------- Karten ---------- */
+  .karte { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+           padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.35); min-width: 0;
+           animation: rein .55s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+  .karte h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-2);
+              display: flex; align-items: center; gap: 8px; }
+  .karte h2 .ic { font-size: 17px; color: var(--muted); }
+  .karte h2 .rechts { margin-left: auto; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+
+  /* ---------- Kennzahlen ---------- */
+  .kpis { display: grid; gap: 16px; grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 680px)  { .kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1180px) { .kpis { grid-template-columns: repeat(6, 1fr); } }
+  .kpi { padding: 18px; }
+  .kpi .chip { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+               font-size: 19px; color: var(--accent); background: var(--accent-soft); }
+  .kpi .label { margin-top: 14px; font-size: 13px; color: var(--text-2); }
+  .kpi .wert { margin-top: 4px; font-size: clamp(25px, 2.3vw, 31px); font-weight: 650;
+               letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; }
+  .delta { margin-top: 8px; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .delta b { font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+  .delta .gut { color: var(--good-t); } .delta .schlecht { color: var(--crit-t); } .delta .achtung { color: var(--warn-t); }
+
+  /* ---------- Monatsziel ---------- */
+  .ziel { display: grid; gap: 14px 28px; align-items: center; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .ziel { grid-template-columns: auto minmax(200px, 1fr) auto; } }
+  .ziel .stand { font-size: 24px; font-weight: 650; letter-spacing: -.02em; margin-top: 6px; white-space: nowrap; }
+  .ziel .stand small { font-size: 14px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .balken-box { padding: 8px 0 20px; position: relative; }
+  .balken { height: 14px; border-radius: 999px; position: relative; }
+  .balken i { display: block; height: 100%; border-radius: 999px; width: 0; transition: width 1.1s cubic-bezier(.2,.7,.2,1) .25s; }
+  .soll { position: absolute; top: 2px; bottom: 14px; width: 2px; background: var(--text); border-radius: 2px; transform: translateX(-1px); }
+  .soll em { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 3px;
+             font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .ziel-zahlen { display: flex; gap: 26px; flex-wrap: wrap; }
+  .ziel-zahlen div { font-size: 12.5px; color: var(--muted); }
+  .ziel-zahlen b { display: block; font-size: 17px; font-weight: 600; color: var(--text); margin-top: 2px; white-space: nowrap; }
+  .pille { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+           padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .pille.gruen { color: var(--good-t); background: rgba(12,163,12,.14); }
+  .pille.gelb  { color: var(--warn-t); background: rgba(250,178,25,.13); }
+  .pille.rot   { color: var(--crit-t); background: rgba(208,59,59,.16); }
+  .pille.neutral { color: var(--text-2); background: rgba(255,255,255,.06); }
+
+  /* ---------- Zweispaltige Bereiche ---------- */
+  .reihe { display: grid; gap: 18px; grid-template-columns: 1fr; }
+  @media (min-width: 980px) { .reihe.r21 { grid-template-columns: 2fr 1fr; } .reihe.r11 { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- Diagramm ---------- */
+  .chart-kopf { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 10px 0 6px; }
+  .chart-kopf .summe { font-size: 34px; font-weight: 650; letter-spacing: -.02em; }
+  .chartkarte { display: flex; flex-direction: column; }
+  .chart { position: relative; outline: none; touch-action: pan-y; border-radius: 10px; flex: 1; min-height: 270px; }
+  .chart .svgbox { position: absolute; inset: 0; }
+  .legende { display: flex; gap: 6px 18px; flex-wrap: wrap; margin-left: auto; font-size: 12.5px; color: var(--text-2); }
+  .legende span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .legende i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--accent); }
+  .legende i.ziel-l { border-top: 2px dashed var(--text-2); opacity: .7; }
+  .chart:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  .chart svg { display: block; width: 100%; }
+  .chart text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .chart .endwert { font-size: 12.5px; font-weight: 600; fill: var(--text); }
+  .chart .linie { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .neu .linie { stroke-dasharray: 1; stroke-dashoffset: 1; animation: zeichne 1.4s ease-out .35s forwards; }
+  .chart .neu .flaeche, .chart .neu .ende { opacity: 0; animation: blende .8s ease-out 1.2s forwards; }
+  .tip { position: absolute; pointer-events: none; background: #262624; border: 1px solid rgba(255,255,255,.14);
+         border-radius: 10px; padding: 7px 11px; box-shadow: 0 8px 24px rgba(0,0,0,.5); white-space: nowrap;
+         transform: translate(-50%, -100%); }
+  .tip b { display: block; font-size: 15px; font-weight: 650; }
+  .tip span { font-size: 11.5px; color: var(--muted); }
+  details.tabelle { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  details.tabelle summary { cursor: pointer; width: max-content; padding: 4px 0; }
+  details.tabelle div { max-height: 220px; overflow: auto; margin-top: 6px; border: 1px solid var(--line); border-radius: 10px; }
+  details.tabelle table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  details.tabelle th, details.tabelle td { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--line); }
+  details.tabelle td:last-child, details.tabelle th:last-child { text-align: right; color: var(--text); }
+
+  /* ---------- Listen ---------- */
+  .liste { display: grid; gap: 8px; margin-top: 14px; }
+  .zeile { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 13px;
+           border: 1px solid transparent; background: rgba(255,255,255,.025); }
+  .zeile .chip { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px;
+                 color: var(--text-2); background: rgba(255,255,255,.06); flex: none; }
+  .zeile .txt { min-width: 0; flex: 1; }
+  .zeile .txt b { display: block; font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .zeile .txt span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; line-height: 1.35; }
+  .zeile .neben { font-size: 12px; color: var(--muted); white-space: nowrap; flex: none; }
+  .zeile.gelb { background: rgba(250,178,25,.07); border-color: rgba(250,178,25,.28); }
+  .zeile.gelb .chip { color: #0d0d0d; background: var(--warn); }
+  .zeile.rot { background: rgba(208,59,59,.10); border-color: rgba(208,59,59,.45); }
+  .zeile.rot .chip { color: #fff; background: var(--crit); }
+  .zeile.gruen .chip { color: var(--good-t); background: rgba(12,163,12,.16); }
+  .leer { font-size: 13.5px; color: var(--muted); padding: 18px 4px; }
+  .abschnitt { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+               color: var(--muted); margin: 18px 0 -4px; }
+
+  /* ---------- Clipping ---------- */
+  .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+  .schritt { background: rgba(255,255,255,.035); border-radius: 13px; padding: 12px 10px; text-align: center; position: relative; }
+  .schritt b { display: block; font-size: 24px; font-weight: 650; letter-spacing: -.02em; }
+  .schritt span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+  .schritt + .schritt::before { content: "›"; position: absolute; left: -9px; top: 50%; transform: translateY(-58%);
+                                color: var(--muted); font-size: 16px; }
+  .bedarf { display: grid; gap: 8px; grid-template-columns: 1fr; margin-top: 12px; }
+  @media (min-width: 560px) { .bedarf { grid-template-columns: 1fr 1fr; } }
+  .bedarf .zeile { padding: 8px 10px; }
+  .bedarf .chip { background: none; width: 24px; height: 24px; font-size: 20px; }
+  .bedarf .ok .chip { color: var(--good-t); } .bedarf .fehlt .chip { color: var(--warn-t); } .bedarf .optional .chip { color: var(--muted); }
+  .bedarf .fehlt { background: rgba(250,178,25,.07); border-color: rgba(250,178,25,.28); }
+
+  .fuss { font-size: 12px; color: var(--muted); text-align: center; margin-top: 6px; }
+
+  @keyframes rein   { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes puls   { from { transform: scale(1); opacity: .5; } to { transform: scale(1.7); opacity: 0; } }
+  @keyframes zeichne{ to { stroke-dashoffset: 0; } }
+  @keyframes blende { to { opacity: 1; } }
+  @media (max-width: 679px) {
+    .zeit { text-align: left; order: 3; } .status { order: 2; width: 100%; } .marke { width: 100%; }
+    .uhr { font-size: 22px; } .karte { padding: 16px; } .chart-kopf .summe { font-size: 28px; }
+    .chart { min-height: 210px; } .legende { margin-left: 0; width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .chart .neu .linie { stroke-dashoffset: 0; } .chart .neu .flaeche, .chart .neu .ende { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="kopf">
+    <div class="marke">
+      <div class="logo" id="logo"></div>
+      <div>
+        <div class="firma"><span id="firma"></span><span class="tag" id="beispiel" hidden>Beispieldaten</span></div>
+        <div class="firma-sub" id="firmaSub"></div>
+      </div>
+    </div>
+    <div class="zeit">
+      <div class="uhr" id="uhr">--:--</div>
+      <div class="datum" id="datum"></div>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Kennzahlen"></section>
+
+  <section class="karte ziel" id="ziel" style="--i:6" aria-label="Monatsziel"></section>
+
+  <div class="reihe r21">
+    <section class="karte chartkarte" style="--i:7">
+      <h2 id="chartTitel"></h2>
+      <div class="chart-kopf" id="chartKopf"></div>
+      <div class="chart" id="chart" tabindex="0"><div class="svgbox"></div><div class="tip" hidden></div></div>
+      <details class="tabelle"><summary>Als Tabelle anzeigen</summary><div id="tabelle"></div></details>
+    </section>
+    <section class="karte" style="--i:8">
+      <h2 id="todoTitel"></h2>
+      <div id="todos"></div>
+    </section>
+  </div>
+
+  <div class="reihe r11">
+    <section class="karte" style="--i:9">
+      <h2 id="aktivTitel"></h2>
+      <div class="liste" id="aktiv"></div>
+    </section>
+    <section class="karte" style="--i:10">
+      <h2 id="clipTitel"></h2>
+      <div class="pipeline" id="pipeline"></div>
+      <div class="abschnitt" id="bedarfTitel"></div>
+      <div class="bedarf" id="bedarf"></div>
+    </section>
+  </div>
+
+  <div class="fuss" id="fuss"></div>
+</div>
+
+<script>
+/* =====================================================================
+   1)  DEINE DATEN  –  nur diesen Block musst du anpassen
+   =====================================================================
+   Alles, was das Dashboard zeigt, kommt aus dem Objekt DATA.
+   Kennzahlen, Ampel und Warnungen werden daraus automatisch berechnet.
+
+   Zwei kleine Helfer nur für die Beispieldaten (damit sie immer "frisch" aussehen):
+     vor(25)      = Zeitpunkt vor 25 Minuten
+     inTagen(2)   = Datum in 2 Tagen  (inTagen(-3) = vor 3 Tagen)
+   Bei echten Daten schreibst du stattdessen einfach ein Datum hin,
+   z. B. "2026-11-12T14:05" oder "2026-11-15".
+   ===================================================================== */
+const vor     = min  => new Date(Date.now() - min * 60000).toISOString();
+const inTagen = tage => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + tage); return d.toISOString(); };
+
+const DATA = {
+  // Auf false stellen, sobald echte Daten drin sind (blendet das Schild "Beispieldaten" aus).
+  beispieldaten: true,
+
+  // --- Kopfzeile ---------------------------------------------------------
+  firma: { name: "Clipping Studio", untertitel: "Stream-Clips für TikTok, Shorts & Reels" },
+
+  // --- Einnahmen ---------------------------------------------------------
+  // Ein Wert pro Tag in Euro, ältester Tag zuerst, der LETZTE Wert ist HEUTE.
+  // 60 Werte sind ideal (30 Tage fürs Diagramm + 30 Tage zum Vergleich); weniger geht auch.
+  // Quelle: Auszahlungs-Übersicht deiner Kampagnen (z. B. Content Rewards / Whop).
+  einnahmenProTag: [
+    22, 25, 19, 28, 31, 35, 30,   24, 27, 33, 29, 36, 41, 38,   30, 28, 35, 39, 44, 47, 40,
+    33, 36, 42, 38, 45, 52, 48,   37, 41,
+    44, 39, 47, 52, 58, 55, 43,   46, 51, 49, 57, 96, 71, 54,   48, 45, 53, 50, 56, 62, 51,
+    47, 52, 49, 55, 61, 58, 50,   57, 64
+  ],
+
+  // Monatsziel für die Einnahmen in Euro.
+  monatsziel: 2000,
+
+  // Feste Kosten pro Monat in Euro (Abos, Tools …).
+  kostenMonat: [
+    { name: "Eklipse-Abo",     betrag: 23 },
+    { name: "Untertitel-Tool", betrag: 15 },
+    { name: "Cloud-Speicher",  betrag: 9  }
+  ],
+
+  // --- Reichweite ----------------------------------------------------------
+  // Je 14 Werte (letzte 14 Tage, letzter Wert = heute).
+  // Quelle: Analytics von TikTok / YouTube / Instagram, zusammengezählt.
+  viewsProTag: [51200, 48700, 55100, 60300, 49800, 46100, 50900,   47900, 53600, 60200, 57100, 49300, 56400, 63800],
+  clipsProTag: [4, 3, 5, 4, 4, 3, 4,   4, 5, 5, 4, 3, 5, 6],
+
+  // --- Kampagnen (wird für Budget-Warnungen benutzt) -------------------------
+  kampagnen: [
+    { name: "NovaPlays Highlights", budget: 3000, verbraucht: 2730 },
+    { name: "KiraLive Just Chatting", budget: 5000, verbraucht: 1850 }
+  ],
+
+  // --- Geld, das dir noch zusteht (wie "offene Rechnungen") -------------------
+  offeneAuszahlungen: [
+    { von: "Content Rewards", betrag: 118, faellig: inTagen(-2) },
+    { von: "ClipAffiliates",  betrag: 64,  faellig: inTagen(5)  }
+  ],
+
+  // --- Aufgaben ---------------------------------------------------------------
+  // erledigt: true blendet die Aufgabe aus.
+  todos: [
+    { text: "6 Clips für NovaPlays einreichen", faellig: inTagen(0), erledigt: false },
+    { text: "VOD von gestern analysieren",      faellig: inTagen(1), erledigt: false },
+    { text: "Anfrage von PixelPaul beantworten", faellig: inTagen(2), erledigt: false }
+  ],
+
+  // --- Letzte Aktivitäten -------------------------------------------------------
+  // typ: "zahlung" | "clip" | "viral" | "kampagne" | "anfrage" | "vod"
+  aktivitaeten: [
+    { typ: "clip",     text: "Clip gepostet: „1v4 Clutch“",          detail: "TikTok · NovaPlays",          zeit: vor(12)   },
+    { typ: "zahlung",  text: "Auszahlung eingegangen: 86 €",         detail: "Content Rewards",             zeit: vor(95)   },
+    { typ: "viral",    text: "Clip hat 100.000 Views erreicht",      detail: "„Chat rastet aus“ · Shorts",  zeit: vor(190)  },
+    { typ: "vod",      text: "VOD analysiert: 9 Kandidaten",         detail: "KiraLive · 4 Std. 12 Min.",   zeit: vor(320)  },
+    { typ: "anfrage",  text: "Neue Anfrage von PixelPaul",           detail: "Möchte 10 Clips pro Woche",   zeit: vor(1500) },
+    { typ: "kampagne", text: "Kampagne beigetreten: KiraLive",       detail: "1,20 € pro 1.000 Views",      zeit: vor(2900) }
+  ],
+
+  // --- Clip-Pipeline (was gerade in Arbeit ist) -----------------------------------
+  // "Heute gepostet" wird automatisch aus clipsProTag genommen.
+  pipeline: { vodsWartend: 2, kandidatenZuPruefen: 14, fertigZumPosten: 5 },
+
+  // --- Was du fürs Clipping brauchst -------------------------------------------------
+  // status: "ok" (vorhanden) | "fehlt" (wird gelb markiert) | "optional"
+  bedarf: [
+    { name: "Stream-Aufnahme + Chat",  hinweis: "VOD-Datei und Chat-Export (JSON)",  status: "ok" },
+    { name: "Erlaubnis des Streamers", hinweis: "Kampagne oder schriftliche Zusage", status: "ok" },
+    { name: "Schnitt-Tool",            hinweis: "clipper.py + ffmpeg",               status: "ok" },
+    { name: "Kampagnen-Konto",         hinweis: "z. B. Content Rewards",             status: "ok" },
+    { name: "Kanäle zum Posten",       hinweis: "TikTok, Shorts, Reels",             status: "ok" },
+    { name: "Untertitel (Whisper)",    hinweis: "Grafikkarte oder Bezahldienst",     status: "fehlt" },
+    { name: "Musik-Check",             hinweis: "Schutz vor Copyright-Strikes",      status: "fehlt" },
+    { name: "Twitch-API-Schlüssel",    hinweis: "Für automatischen VOD-Download",    status: "optional" }
+  ]
+};
+
+/* ---------------------------------------------------------------------
+   Ab wann die Ampel umschaltet (Schwellen für die automatischen Warnungen)
+   --------------------------------------------------------------------- */
+const REGELN = {
+  zielGelbUnter: 0.90,       // Monatsziel: unter 90 % vom Soll-Stand -> gelb
+  zielRotUnter: 0.60,        //             unter 60 % vom Soll-Stand -> rot
+  wocheGelbAb: -15,          // Einnahmen 7 Tage: ab -15 % zur Vorwoche -> gelb
+  wocheRotAb: -40,           //                   ab -40 % zur Vorwoche -> rot
+  auszahlungRotNachTagen: 14,// Auszahlung überfällig: gelb, nach 14 Tagen rot
+  budgetGelbAb: 0.85         // Kampagnen-Budget: ab 85 % verbraucht -> gelb
+};
+
+/* ---------------------------------------------------------------------
+   ECHTE DATEN ANBINDEN (optional)
+   Trage bei url eine Adresse ein, die JSON im gleichen Aufbau wie DATA liefert
+   (es reichen die Felder, die sich ändern, z. B. nur einnahmenProTag und todos).
+   Das kann sein: eine Datei "daten.json" neben dieser Seite (über einen Webserver,
+   nicht per Doppelklick), ein Google-Apps-Script, das dein Google Sheet als JSON
+   ausgibt, oder deine eigene Datenbank-Schnittstelle.
+   alleSekunden: wie oft neu geladen wird (0 = nur beim Öffnen).
+   --------------------------------------------------------------------- */
+const DATEN_QUELLE = { url: "", alleSekunden: 0 };
+
+
+/* =====================================================================
+   2)  DARSTELLUNG  –  ab hier musst du nichts ändern
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const h = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const nf = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
+const zahl = v => nf.format(Math.round(v));
+const eur  = v => zahl(v) + " €";
+const sum  = a => a.reduce((s, v) => s + v, 0);
+const nums = a => (Array.isArray(a) ? a : []).map(Number).filter(Number.isFinite);
+const letzte = (a, n, versatz = 0) => a.slice(Math.max(0, a.length - n - versatz), Math.max(0, a.length - versatz));
+const proz = (neu, alt) => (alt > 0 ? (neu - alt) / alt * 100 : null);
+
+const ICONS = {
+  euro: '<path d="M17.5 6.5a7 7 0 1 0 0 11"/><path d="M4 10.2h9M4 13.8h9"/>',
+  woche: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  auge: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>',
+  schere: '<circle cx="6" cy="6.5" r="2.8"/><circle cx="6" cy="17.5" r="2.8"/><path d="M8.3 8.3 20 19M8.3 15.7 20 5"/>',
+  gewinn: '<path d="M4 8V7a2.5 2.5 0 0 1 2.5-2.5H17V8"/><rect x="3.5" y="8" width="17" height="12" rx="2.5"/><path d="M16 14h.6"/>',
+  aufgaben: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/>',
+  ok: '<circle cx="12" cy="12" r="9"/><path d="m8.2 12.3 2.6 2.6 5-5.4"/>',
+  warn: '<path d="M12 4 21 19.5H3Z"/><path d="M12 10v4.2M12 17v.1"/>',
+  krit: '<path d="M8.3 3.5h7.4l4.8 4.8v7.4l-4.8 4.8H8.3l-4.8-4.8V8.3Z"/><path d="M12 8v5M12 16.2v.1"/>',
+  ziel: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  zahlung: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.5"/>',
+  clip: '<path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9M5 19.5h14"/>',
+  viral: '<path d="M3.5 17 9.5 11l4 4 7-7.5"/><path d="M15 7.5h5.5V13"/>',
+  kampagne: '<path d="M5.5 21V4M5.5 4.5h11l-2 4 2 4h-11"/>',
+  anfrage: '<path d="M4 5.5h16v11H10l-4.5 3.5v-3.5H4Z"/>',
+  vod: '<rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="m10.3 9.3 4.7 2.7-4.7 2.7Z"/>',
+  uhr: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>',
+  hoch: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  runter: '<path d="M12 5v14M6 13l6 6 6-6"/>',
+  optional: '<circle cx="12" cy="12" r="9" stroke-dasharray="3.2 3.4"/>',
+  aktiv: '<path d="M3 12h4l2.5-6 4 12 2.5-6h5"/>',
+  chart: '<path d="M4 4v16h16"/><path d="m7.5 14.5 3.5-4 3 2.5 4.5-6"/>'
+};
+const icon = name => { const s = h("span"); s.innerHTML = `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.uhr}</svg>`; return s.firstChild; };
+const titel = (node, ic, text, rechts) => { node.replaceChildren(icon(ic), document.createTextNode(text)); if (rechts) node.append(h("span", "rechts", rechts)); };
+
+/* ---------- Zeit-Helfer ---------- */
+const tagBeginn = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const tageBis = d => Math.round((tagBeginn(d) - tagBeginn(new Date())) / 86400000);
+function relativ(iso) {
+  const d = new Date(iso); if (isNaN(d)) return "";
+  const min = Math.round((Date.now() - d) / 60000), t = tageBis(d);
+  const uhr = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  if (min < 1) return "gerade eben";
+  if (min < 60) return `vor ${min} Min.`;
+  if (t === 0) return `vor ${Math.round(min / 60)} Std.`;
+  if (t === -1) return `gestern, ${uhr}`;
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) + `, ${uhr}`;
+}
+function faelligText(iso) {
+  const t = tageBis(iso);
+  if (isNaN(t)) return { text: "", stufe: "neutral" };
+  if (t < 0)  return { text: t === -1 ? "seit gestern überfällig" : `seit ${-t} Tagen überfällig`, stufe: "rot" };
+  if (t === 0) return { text: "heute fällig", stufe: "gelb" };
+  if (t === 1) return { text: "morgen", stufe: "neutral" };
+  return { text: `in ${t} Tagen`, stufe: "neutral" };
+}
+
+/* ---------- Kennzahlen aus DATA berechnen ---------- */
+function berechne(D) {
+  const e = nums(D.einnahmenProTag), v = nums(D.viewsProTag), c = nums(D.clipsProTag);
+  const jetzt = new Date(), tagImMonat = jetzt.getDate();
+  const tageImMonat = new Date(jetzt.getFullYear(), jetzt.getMonth() + 1, 0).getDate();
+  const ziel = Number(D.monatsziel) || 0;
+  const monatIst = sum(letzte(e, tagImMonat));
+  const soll = ziel * tagImMonat / tageImMonat;
+  const kosten = sum(nums((D.kostenMonat || []).map(k => k.betrag)));
+  const todos = (D.todos || []).filter(t => !t.erledigt);
+  return {
+    e, heute: e.length ? e[e.length - 1] : 0,
+    heuteDelta: e.length > 1 ? proz(e[e.length - 1], e[e.length - 2]) : null,
+    woche: sum(letzte(e, 7)), wocheDelta: e.length >= 14 ? proz(sum(letzte(e, 7)), sum(letzte(e, 7, 7))) : null,
+    d30: sum(letzte(e, 30)), d30Delta: e.length >= 60 ? proz(sum(letzte(e, 30)), sum(letzte(e, 30, 30))) : null,
+    views: sum(letzte(v, 7)), viewsDelta: v.length >= 14 ? proz(sum(letzte(v, 7)), sum(letzte(v, 7, 7))) : null,
+    clips: sum(letzte(c, 7)), clipsDelta: c.length >= 14 ? proz(sum(letzte(c, 7)), sum(letzte(c, 7, 7))) : null,
+    clipsHeute: c.length ? c[c.length - 1] : 0,
+    ziel, monatIst, soll, tagImMonat, tageImMonat, zielTag: ziel / tageImMonat,
+    tempo: soll > 0 ? monatIst / soll : 1,
+    prognose: monatIst / tagImMonat * tageImMonat,
+    kosten, gewinn: monatIst - kosten, todos,
+    monat: jetzt.toLocaleDateString("de-DE", { month: "long" })
+  };
+}
+
+/* ---------- Automatische Warnungen ---------- */
+function warnungen(D, k) {
+  const w = [];
+  if (datenFehler) w.push({ stufe: "gelb", titel: "Daten konnten nicht geladen werden", text: "Es werden die zuletzt bekannten Werte gezeigt." });
+
+  if (k.ziel > 0 && k.tempo < REGELN.zielRotUnter) w.push({ stufe: "rot", titel: "Monatsziel stark gefährdet", text: `${eur(k.soll - k.monatIst)} hinter Plan` });
+  else if (k.ziel > 0 && k.tempo < REGELN.zielGelbUnter) w.push({ stufe: "gelb", titel: "Einnahmen unter Monatsziel", text: `${eur(k.soll - k.monatIst)} hinter Plan` });
+
+  if (k.wocheDelta != null && k.wocheDelta <= REGELN.wocheRotAb) w.push({ stufe: "rot", titel: "Einnahmen brechen ein", text: `${Math.round(k.wocheDelta)} % zur Vorwoche` });
+  else if (k.wocheDelta != null && k.wocheDelta <= REGELN.wocheGelbAb) w.push({ stufe: "gelb", titel: "Einnahmen gehen zurück", text: `${Math.round(k.wocheDelta)} % zur Vorwoche` });
+
+  for (const a of D.offeneAuszahlungen || []) {
+    const t = tageBis(a.faellig);
+    if (t < 0) w.push({ stufe: -t >= REGELN.auszahlungRotNachTagen ? "rot" : "gelb",
+      titel: `Auszahlung überfällig: ${eur(Number(a.betrag) || 0)}`, text: `${a.von} · ${faelligText(a.faellig).text}` });
+  }
+  for (const kp of D.kampagnen || []) {
+    const anteil = kp.budget > 0 ? kp.verbraucht / kp.budget : 0;
+    if (anteil >= REGELN.budgetGelbAb) w.push({ stufe: "gelb", titel: `Kampagnen-Budget fast leer`,
+      text: `${kp.name}: ${Math.round(anteil * 100)} % verbraucht` });
+  }
+  const fehlt = (D.bedarf || []).filter(b => b.status === "fehlt");
+  if (fehlt.length) w.push({ stufe: "gelb", titel: fehlt.length === 1 ? "1 Sache fehlt fürs Clipping" : `${fehlt.length} Dinge fehlen fürs Clipping`,
+    text: fehlt.map(b => b.name).join(", ") });
+
+  return w.sort((a, b) => (a.stufe === "rot" ? 0 : 1) - (b.stufe === "rot" ? 0 : 1));
+}
+
+/* ---------- Zahlen hochzählen (nur beim ersten Laden) ---------- */
+function setzeZahl(node, wert, fmt, animiert) {
+  if (!animiert || matchMedia("(prefers-reduced-motion: reduce)").matches) { node.textContent = fmt(wert); return; }
+  const start = performance.now(), dauer = 900;
+  (function schritt(t) {
+    const p = Math.min(1, (t - start) / dauer), ease = 1 - Math.pow(1 - p, 3);
+    node.textContent = fmt(wert * ease);
+    if (p < 1) requestAnimationFrame(schritt);
+  })(start);
+}
+function deltaZeile(delta, vergleich, gutWennHoch = true) {
+  const z = h("div", "delta");
+  if (delta == null) { z.textContent = "kein Vergleich"; return z; }
+  const flach = Math.abs(delta) < 0.5, gut = (delta >= 0) === gutWennHoch;
+  const b = h("b", flach ? "" : gut ? "gut" : "schlecht");
+  if (!flach) b.append(icon(delta >= 0 ? "hoch" : "runter"));
+  b.append(document.createTextNode(flach ? "±0 %" : `${Math.abs(delta).toFixed(0)} %`));
+  z.append(b, document.createTextNode(vergleich));
+  return z;
+}
+
+/* ---------- Bereiche zeichnen ---------- */
+function zeichneKopf(D, k, w) {
+  $("#logo").replaceChildren(icon("schere"));
+  $("#firma").textContent = D.firma?.name || "Mein Unternehmen";
+  $("#firmaSub").textContent = D.firma?.untertitel || "";
+  $("#beispiel").hidden = !D.beispieldaten;
+  document.title = `${D.firma?.name || "Dashboard"} – Dashboard`;
+
+  const ueberfaellig = k.todos.filter(t => tageBis(t.faellig) < 0).length;
+  const rot = w.filter(x => x.stufe === "rot").length + ueberfaellig;
+  const gelb = w.filter(x => x.stufe === "gelb").length;
+  const s = rot ? { cls: "rot", ic: "krit", t: "Handlungsbedarf", sub: rot === 1 ? "1 dringender Punkt" : `${rot} dringende Punkte` }
+          : gelb ? { cls: "gelb", ic: "warn", t: "Achtung", sub: gelb === 1 ? "1 Punkt braucht Aufmerksamkeit" : `${gelb} Punkte brauchen Aufmerksamkeit` }
+          : { cls: "gruen", ic: "ok", t: "Läuft gut", sub: "Alles im grünen Bereich" };
+  const st = $("#status"); st.className = "status " + s.cls;
+  const p = h("div", "punkt"); p.append(icon(s.ic));
+  const txt = h("div"); txt.append(h("b", "", s.t), h("span", "", s.sub));
+  st.replaceChildren(p, txt);
+}
+
+function zeichneKpis(k, animiert) {
+  const heuteFaellig = k.todos.filter(t => tageBis(t.faellig) === 0).length;
+  const ueberfaellig = k.todos.filter(t => tageBis(t.faellig) < 0).length;
+  const karten = [
+    { ic: "euro",     label: "Einnahmen heute",       wert: k.heute, fmt: eur,  delta: k.heuteDelta, vgl: "zu gestern" },
+    { ic: "woche",    label: "Einnahmen 7 Tage",      wert: k.woche, fmt: eur,  delta: k.wocheDelta, vgl: "zur Vorwoche" },
+    { ic: "auge",     label: "Views 7 Tage",          wert: k.views, fmt: zahl, delta: k.viewsDelta, vgl: "zur Vorwoche" },
+    { ic: "schere",   label: "Clips gepostet 7 Tage", wert: k.clips, fmt: zahl, delta: k.clipsDelta, vgl: "zur Vorwoche" },
+    { ic: "gewinn",   label: `Gewinn im ${k.monat}`,  wert: k.gewinn, fmt: eur, sub: `Kosten: ${eur(k.kosten)}` },
+    { ic: "aufgaben", label: "Offene Aufgaben",       wert: k.todos.length, fmt: zahl,
+      sub: ueberfaellig ? `${ueberfaellig} überfällig` : heuteFaellig ? `${heuteFaellig} heute fällig` : "nichts dringend",
+      subCls: ueberfaellig ? "schlecht" : heuteFaellig ? "achtung" : "" }
+  ];
+  $("#kpis").replaceChildren(...karten.map((c, i) => {
+    const karte = h("article", "karte kpi"); karte.style.setProperty("--i", i);
+    const chip = h("div", "chip"); chip.append(icon(c.ic));
+    const wert = h("div", "wert"); setzeZahl(wert, c.wert, c.fmt, animiert);
+    let unten;
+    if (c.sub) { unten = h("div", "delta"); const b = h("b", c.subCls || "", c.sub); if (!c.subCls) b.style.fontWeight = 400; unten.append(b); }
+    else unten = deltaZeile(c.delta, c.vgl);
+    karte.append(chip, h("div", "label", c.label), wert, unten);
+    return karte;
+  }));
+}
+
+function zeichneZiel(k) {
+  const stufe = k.tempo < REGELN.zielRotUnter ? "rot" : k.tempo < REGELN.zielGelbUnter ? "gelb" : "gruen";
+  const farbe = { gruen: "var(--good)", gelb: "var(--warn)", rot: "var(--crit)" }[stufe];
+  const spur  = { gruen: "rgba(12,163,12,.18)", gelb: "rgba(250,178,25,.16)", rot: "rgba(208,59,59,.20)" }[stufe];
+  const anteil = k.ziel > 0 ? k.monatIst / k.ziel : 0;
+
+  const links = h("div");
+  const t = h("h2"); titel(t, "ziel", `Monatsziel ${k.monat}`);
+  const stand = h("div", "stand", eur(k.monatIst) + " "); stand.append(h("small", "", `von ${eur(k.ziel)}`));
+  links.append(t, stand);
+
+  const box = h("div", "balken-box");
+  const balken = h("div", "balken"); balken.style.background = spur;
+  balken.setAttribute("role", "progressbar"); balken.setAttribute("aria-valuemin", 0); balken.setAttribute("aria-valuemax", 100);
+  balken.setAttribute("aria-valuenow", Math.round(anteil * 100)); balken.setAttribute("aria-label", "Monatsziel erreicht in Prozent");
+  const fuell = h("i"); fuell.style.background = farbe; balken.append(fuell);
+  const soll = h("div", "soll"); soll.style.left = Math.min(100, k.tagImMonat / k.tageImMonat * 100) + "%";
+  soll.append(h("em", "", "Soll heute"));
+  box.append(balken, soll);
+  requestAnimationFrame(() => requestAnimationFrame(() => { fuell.style.width = Math.min(100, anteil * 100) + "%"; }));
+
+  const zahlen = h("div", "ziel-zahlen");
+  const z = (label, wert) => { const d = h("div", "", label); d.append(h("b", "", wert)); return d; };
+  const pille = h("span", "pille " + stufe);
+  pille.append(icon(stufe === "gruen" ? "ok" : stufe === "gelb" ? "warn" : "krit"),
+    document.createTextNode(stufe === "gruen" ? "Im Plan" : stufe === "gelb" ? "Hinter Plan" : "Weit hinter Plan"));
+  const pBox = h("div", "", "Stand"); const pb = h("b"); pb.append(pille); pBox.append(pb);
+  zahlen.append(z("Erreicht", Math.round(anteil * 100) + " %"), z("Soll bis heute", eur(k.soll)), z("Prognose Monatsende", eur(k.prognose)), pBox);
+
+  $("#ziel").replaceChildren(links, box, zahlen);
+}
+
+function zeichneTodos(D, k, w) {
+  titel($("#todoTitel"), "aufgaben", "To-dos & Warnungen");
+  const box = $("#todos"); box.replaceChildren();
+  const zeile = (stufe, ic, t, text, neben) => {
+    const z = h("div", "zeile " + (stufe || ""));
+    const chip = h("div", "chip"); chip.append(icon(ic));
+    const txt = h("div", "txt"); txt.append(h("b", "", t)); if (text) txt.append(h("span", "", text));
+    z.append(chip, txt); if (neben) z.append(neben);
+    return z;
+  };
+  box.append(h("div", "abschnitt", "Braucht Aufmerksamkeit"));
+  const wl = h("div", "liste");
+  if (w.length) wl.append(...w.map(x => zeile(x.stufe, x.stufe === "rot" ? "krit" : "warn", x.titel, x.text)));
+  else wl.append(zeile("gruen", "ok", "Keine Warnungen", "Alles im grünen Bereich."));
+  box.append(wl, h("div", "abschnitt", "Aufgaben"));
+  const tl = h("div", "liste");
+  const sortiert = [...k.todos].sort((a, b) => new Date(a.faellig) - new Date(b.faellig));
+  if (sortiert.length) tl.append(...sortiert.map(t => {
+    const f = faelligText(t.faellig);
+    return zeile(f.stufe === "rot" ? "rot" : "", f.stufe === "rot" ? "krit" : "uhr", t.text, null, h("span", "pille " + f.stufe, f.text));
+  }));
+  else tl.append(h("div", "leer", "Keine offenen Aufgaben."));
+  box.append(tl);
+}
+
+function zeichneAktiv(D) {
+  titel($("#aktivTitel"), "aktiv", "Letzte Aktivitäten");
+  const liste = [...(D.aktivitaeten || [])].sort((a, b) => new Date(b.zeit) - new Date(a.zeit)).slice(0, 7);
+  const box = $("#aktiv");
+  if (!liste.length) { box.replaceChildren(h("div", "leer", "Noch keine Aktivitäten.")); return; }
+  box.replaceChildren(...liste.map(a => {
+    const z = h("div", "zeile");
+    const chip = h("div", "chip"); chip.append(icon(ICONS[a.typ] ? a.typ : "uhr"));
+    const txt = h("div", "txt"); txt.append(h("b", "", a.text)); if (a.detail) txt.append(h("span", "", a.detail));
+    z.append(chip, txt, h("span", "neben", relativ(a.zeit)));
+    return z;
+  }));
+}
+
+function zeichneClipping(D, k) {
+  titel($("#clipTitel"), "schere", "Clipping", "Pipeline heute");
+  const p = D.pipeline || {};
+  const schritte = [
+    [p.vodsWartend, "Streams warten"], [p.kandidatenZuPruefen, "Kandidaten prüfen"],
+    [p.fertigZumPosten, "Fertig zum Posten"], [k.clipsHeute, "Heute gepostet"]
+  ];
+  $("#pipeline").replaceChildren(...schritte.map(([n, label]) => {
+    const s = h("div", "schritt"); s.append(h("b", "", zahl(Number(n) || 0)), h("span", "", label)); return s;
+  }));
+
+  const bedarf = D.bedarf || [], pflicht = bedarf.filter(b => b.status !== "optional");
+  const bereit = pflicht.filter(b => b.status === "ok").length;
+  $("#bedarfTitel").textContent = `Was du brauchst · ${bereit} von ${pflicht.length} bereit`;
+  const wort = { ok: "bereit", fehlt: "fehlt", optional: "optional" }, ic = { ok: "ok", fehlt: "warn", optional: "optional" };
+  $("#bedarf").replaceChildren(...bedarf.map(b => {
+    const st = wort[b.status] ? b.status : "fehlt";
+    const z = h("div", "zeile " + st);
+    const chip = h("div", "chip"); chip.append(icon(ic[st]));
+    const txt = h("div", "txt"); txt.append(h("b", "", b.name)); if (b.hinweis) txt.append(h("span", "", b.hinweis));
+    z.append(chip, txt, h("span", "neben", wort[st]));
+    return z;
+  }));
+}
+
+/* ---------- Liniendiagramm (ohne fremde Bibliothek) ---------- */
+let chart = null, chartNeu = true;
+function schoenerSchritt(roh) {
+  const p = Math.pow(10, Math.floor(Math.log10(Math.max(roh, 1e-9)))), f = roh / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+function zeichneChart(D, k) {
+  titel($("#chartTitel"), "chart", "Einnahmen · letzte 30 Tage");
+  const kopf = $("#chartKopf"); kopf.replaceChildren(h("div", "summe", eur(k.d30)));
+  if (k.d30Delta != null) {
+    const gut = k.d30Delta >= 0, pille = h("span", "pille " + (gut ? "gruen" : "rot"));
+    pille.append(icon(gut ? "hoch" : "runter"), document.createTextNode(`${Math.abs(k.d30Delta).toFixed(0)} %`));
+    kopf.append(pille, h("span", "", "zu den 30 Tagen davor"));
+    kopf.lastChild.style.cssText = "font-size:12.5px;color:var(--muted)";
+  }
+  const legende = h("div", "legende"), eintrag = (cls, text) => { const e = h("span"); e.append(h("i", cls), document.createTextNode(text)); return e; };
+  legende.append(eintrag("", "Einnahmen pro Tag"));
+  if (k.zielTag > 0) legende.append(eintrag("ziel-l", `Tagesziel ${eur(k.zielTag)}`));
+  kopf.append(legende);
+
+  const wrap = $("#chart"), box = wrap.querySelector(".svgbox");
+  const werte = letzte(k.e, 30), n = werte.length;
+  if (n < 2) { box.replaceChildren(h("div", "leer", "Noch zu wenige Daten für ein Diagramm.")); chart = null; return; }
+  const heute = new Date();
+  const datum = i => { const d = new Date(heute); d.setDate(d.getDate() - (n - 1 - i)); return d; };
+  const kurz = d => d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+
+  letzteGroesse = wrap.clientWidth + "x" + wrap.clientHeight;
+  const W = Math.max(280, wrap.clientWidth), H = Math.max(200, wrap.clientHeight);
+  const max = Math.max(...werte, k.zielTag || 0);
+  const step = schoenerSchritt(max / (H > 300 ? 4.5 : 3.2)), yMax = Math.ceil(max * 1.04 / step) * step;
+  const m = { o: 14, r: 62, u: 26, l: 14 + eur(yMax).length * 6.4 };
+  const x = i => m.l + i * (W - m.l - m.r) / (n - 1);
+  const y = v => m.o + (1 - v / yMax) * (H - m.o - m.u);
+  const pfad = werte.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+
+  let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" class="${chartNeu ? "neu" : ""}"
+    aria-label="Liniendiagramm: Einnahmen pro Tag in den letzten ${n} Tagen, zusammen ${eur(k.d30)}.">`;
+  for (let t = 0; t <= yMax + 1e-9; t += step)
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="${t ? "var(--grid)" : "var(--axis)"}"/>
+          <text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${eur(t)}</text>`;
+  for (let i = n - 1; i >= 0; i -= 7)
+    s += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${i === n - 1 ? "heute" : kurz(datum(i))}</text>`;
+  if (k.zielTag > 0)   // gestrichelte Hilfslinie: so viel pro Tag ist für das Monatsziel nötig
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(k.zielTag)}" y2="${y(k.zielTag)}" stroke="var(--text-2)" stroke-opacity=".55" stroke-dasharray="5 5"/>`;
+  s += `<path class="flaeche" d="${pfad} L${x(n - 1)} ${y(0)} L${x(0)} ${y(0)} Z" fill="var(--accent)" fill-opacity=".10"/>
+        <path class="linie" d="${pfad}" pathLength="1"/>
+        <g class="ende"><circle cx="${x(n - 1)}" cy="${y(werte[n - 1])}" r="5" fill="var(--accent)" stroke="var(--card)" stroke-width="2"/>
+        <text class="endwert" x="${x(n - 1) + 11}" y="${y(werte[n - 1]) + 4}">${eur(werte[n - 1])}</text></g>
+        <line class="faden" y1="${m.o}" y2="${y(0)}" stroke="var(--text-2)" stroke-opacity=".6" visibility="hidden"/>
+        <circle class="griff" r="5.5" fill="var(--accent)" stroke="var(--card)" stroke-width="2" visibility="hidden"/></svg>`;
+  box.innerHTML = s;   // enthält nur selbst berechnete Zahlen
+  chart = { n, x, y, werte, datum, m, W };
+  chartNeu = false;
+
+  // Tabellen-Ansicht (gleiche Werte wie im Diagramm)
+  const tab = h("table"), kopfz = h("tr"); kopfz.append(h("th", "", "Tag"), h("th", "", "Einnahmen")); tab.append(kopfz);
+  for (let i = n - 1; i >= 0; i--) {
+    const tr = h("tr");
+    tr.append(h("td", "", datum(i).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" })), h("td", "", eur(werte[i])));
+    tab.append(tr);
+  }
+  $("#tabelle").replaceChildren(tab);
+}
+function chartZeige(i) {
+  if (!chart) return;
+  const wrap = $("#chart"), tip = wrap.querySelector(".tip");
+  i = Math.max(0, Math.min(chart.n - 1, i)); chart.i = i;
+  const px = chart.x(i), py = chart.y(chart.werte[i]);
+  const faden = wrap.querySelector(".faden"), griff = wrap.querySelector(".griff");
+  faden.setAttribute("x1", px); faden.setAttribute("x2", px); faden.setAttribute("visibility", "visible");
+  griff.setAttribute("cx", px); griff.setAttribute("cy", py); griff.setAttribute("visibility", "visible");
+  tip.replaceChildren(h("b", "", eur(chart.werte[i])),
+    h("span", "", chart.datum(i).toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })));
+  tip.hidden = false;
+  const halb = tip.offsetWidth / 2;
+  tip.style.left = Math.max(halb, Math.min(chart.W - halb, px)) + "px";
+  const hoch = Math.min(...chart.werte.slice(Math.max(0, i - 3), i + 4).map(chart.y));   // höchster Punkt in der Nähe
+  tip.style.top = Math.max(tip.offsetHeight + 2, hoch - 12) + "px";
+}
+function chartVerstecke() {
+  const wrap = $("#chart");
+  wrap.querySelector(".tip").hidden = true;
+  wrap.querySelectorAll(".faden, .griff").forEach(n => n.setAttribute("visibility", "hidden"));
+}
+(function chartBedienung() {
+  const wrap = $("#chart");
+  wrap.addEventListener("pointermove", ev => {
+    if (!chart) return;
+    const px = ev.clientX - wrap.getBoundingClientRect().left;
+    chartZeige(Math.round((px - chart.m.l) / ((chart.W - chart.m.l - chart.m.r) / (chart.n - 1))));
+  });
+  wrap.addEventListener("pointerleave", chartVerstecke);
+  wrap.addEventListener("focus", () => chart && chartZeige(chart.n - 1));
+  wrap.addEventListener("blur", chartVerstecke);
+  wrap.addEventListener("keydown", ev => {
+    if (!chart || (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight")) return;
+    ev.preventDefault(); chartZeige((chart.i ?? chart.n - 1) + (ev.key === "ArrowLeft" ? -1 : 1));
+  });
+})();
+
+/* ---------- Alles zusammen ---------- */
+let datenFehler = null, letzteGroesse = "";
+function render(animiert = false) {
+  const k = berechne(DATA), w = warnungen(DATA, k);
+  zeichneKopf(DATA, k, w);
+  zeichneKpis(k, animiert);
+  zeichneZiel(k);
+  zeichneChart(DATA, k);
+  zeichneTodos(DATA, k, w);
+  zeichneAktiv(DATA);
+  zeichneClipping(DATA, k);
+  $("#fuss").textContent = "Stand: " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr"
+    + (DATA.beispieldaten ? " · Beispieldaten – echte Werte oben im Code bei DATA eintragen" : "");
+}
+function uhr() {
+  const j = new Date();
+  $("#uhr").textContent = j.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  $("#datum").textContent = j.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+async function ladeDaten() {
+  if (!DATEN_QUELLE.url) return;
+  try {
+    const antwort = await fetch(DATEN_QUELLE.url, { cache: "no-store" });
+    if (!antwort.ok) throw new Error("HTTP " + antwort.status);
+    Object.assign(DATA, await antwort.json());
+    datenFehler = null;
+  } catch (fehler) { datenFehler = fehler; console.warn("Daten konnten nicht geladen werden:", fehler); }
+  render();
+}
+
+uhr(); setInterval(uhr, 1000);
+render(true);
+ladeDaten();
+if (DATEN_QUELLE.url && DATEN_QUELLE.alleSekunden > 0) setInterval(ladeDaten, DATEN_QUELLE.alleSekunden * 1000);
+setInterval(() => { zeichneAktiv(DATA); }, 60000);            // "vor 12 Min." aktuell halten
+new ResizeObserver(() => {                                     // Diagramm an die Größe anpassen
+  const w = $("#chart"), g = w.clientWidth + "x" + w.clientHeight;
+  if (w.clientWidth && g !== letzteGroesse) zeichneChart(DATA, berechne(DATA));
+}).observe($("#chart"));
+</script>
+</body>
+</html>
