@@ -1,5 +1,7 @@
-clips/
-*.mp4
-*.mkv
-kandidaten.json
+# Deine Daten, Videos und Einstellungen (inkl. API-Key) bleiben lokal
+data/
+.venv/
 __pycache__/
+*.pyc
+clips/
+kandidaten.json

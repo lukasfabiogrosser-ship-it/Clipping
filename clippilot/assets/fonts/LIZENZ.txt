@@ -1,0 +1,9 @@
+Die Schriften in diesem Ordner und in clippilot/web/fonts stehen unter der
+SIL Open Font License 1.1 (https://openfontlicense.org):
+Inter (The Inter Project Authors), Space Grotesk (The Space Grotesk Project Authors),
+JetBrains Mono (The JetBrains Mono Project Authors), Montserrat (The Montserrat Project Authors),
+Anton (The Anton Project Authors), Poppins (The Poppins Project Authors).
+Quelle: Fontsource (npm-Pakete @fontsource/*), lateinischer Zeichensatz.
+
+Gesichtserkennung: YuNet (clippilot/assets/models/face_detection_yunet_2023mar.onnx),
+MIT-Lizenz, aus dem OpenCV Model Zoo.
