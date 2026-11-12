@@ -6,15 +6,30 @@ ClipPilot macht aus langen Videos (Streams, Podcasts, Interviews) fertige Hochka
 
 ## Starten
 
-Du brauchst nur einmal **Python** (Version 3.10 oder neuer). Alles andere richtet die Start-Datei selbst ein.
+Du brauchst einmal **Python 3.13** (3.10 bis 3.14 gehen auch). Alles andere richtet ClipPilot beim ersten Start selbst ein.
+**Python 3.15 oder neuer funktioniert noch nicht**, weil es einige Bausteine dafür noch nicht gibt. Du kannst 3.13 einfach zusätzlich installieren.
 
-| System | So startest du |
-|---|---|
-| **Windows** | `ClipPilot starten.bat` doppelklicken. Fehlt Python, installiert die Datei es automatisch – danach noch einmal doppelklicken. |
-| **Mac** | `ClipPilot starten.command` doppelklicken. Beim ersten Mal ggf. Rechtsklick → „Öffnen“. Python gibt es auf [python.org/downloads](https://www.python.org/downloads/). |
-| **Linux** | Im Ordner `./start.sh` ausführen. |
+### Mac
 
-Der erste Start dauert ein paar Minuten (Bausteine werden geladen, rund 1 GB). Danach öffnet sich ClipPilot im Browser unter `http://127.0.0.1:8756`. Das schwarze Start-Fenster bleibt offen, solange du arbeitest. Zum Beenden schließt du es.
+1. Python 3.13 installieren: [python.org/downloads/macos](https://www.python.org/downloads/macos/) → „Python 3.13.x“ → „macOS 64-bit universal2 installer“.
+2. Im ClipPilot-Ordner `ClipPilot starten.command` doppelklicken.
+3. Meldet der Mac „kann nicht geöffnet werden“ oder „Apple konnte nicht überprüfen …“: **Systemeinstellungen → Datenschutz & Sicherheit** öffnen, ganz nach unten scrollen und bei ClipPilot auf **„Trotzdem öffnen“** klicken. Danach noch einmal doppelklicken. Das ist nur beim ersten Mal nötig.
+
+Klappt der Doppelklick gar nicht, geht es immer über das Terminal: Programm **Terminal** öffnen, `bash ` eintippen (mit Leerzeichen), die Datei `start.sh` aus dem ClipPilot-Ordner ins Terminal-Fenster ziehen und Enter drücken.
+
+### Windows
+
+`ClipPilot starten.bat` doppelklicken. Fehlt Python, installiert die Datei es automatisch – danach noch einmal doppelklicken.
+
+### Linux
+
+Im Ordner `./start.sh` ausführen.
+
+### Alternativ: mit Python öffnen
+
+`ClipPilot starten.py` lässt sich auch direkt mit Python öffnen (Rechtsklick → „Öffnen mit“ → „Python Launcher“). Bitte **nicht** die Dateien im Ordner `clippilot` mit Python öffnen – die startet ClipPilot selbst.
+
+Der erste Start dauert ein paar Minuten (Bausteine werden geladen, rund 1 GB). Danach öffnet sich ClipPilot im Browser unter `http://127.0.0.1:8756`. Das Terminal-Fenster bleibt offen, solange du arbeitest. Zum Beenden schließt du es.
 
 Am besten nutzt du **Chrome oder Edge**: Nur dort lässt sich das Mini-Fenster so ablösen, dass es über anderen Programmen sichtbar bleibt.
 
@@ -56,12 +71,14 @@ Alles liegt im Ordner `data` neben der Start-Datei: Videos, exportierte Clips (`
 
 - **Die Seite lädt nicht:** Läuft das Start-Fenster noch? Sonst Start-Datei erneut doppelklicken.
 - **„Sprachmodell konnte nicht geladen werden“:** Beim ersten Mal wird es aus dem Internet geladen. Verbindung prüfen und im Projekt auf „Erneut versuchen“ klicken.
+- **„Dieses Python hat die Version 3.15“ / „zu neu“:** Python 3.13 zusätzlich installieren (siehe oben) und neu starten. ClipPilot nimmt dann automatisch die passende Version.
+- **Mac: „kann nicht geöffnet werden“:** Systemeinstellungen → Datenschutz & Sicherheit → „Trotzdem öffnen“.
 - **Ein Link lässt sich nicht laden:** Video herunterladen und per Drag & Drop importieren.
 - **Alles zurücksetzen:** ClipPilot beenden und den Ordner `data` löschen (vorher sichern, falls du die Clips noch brauchst).
 
 ## Stand der Tests
 
-Getestet auf Linux mit zwei kurzen Testvideos (Deutsch und Englisch): Upload, Link-Import, Transkription, Vorschläge, Zuschnitt, Export, Texte, Pipeline, Einnahmen, Ziele, Beispieldaten und Mini-Fenster. **Noch nicht getestet:** die Start-Dateien auf Windows und Mac, die Auswertung mit einem echten Anthropic-Key (nur gegen eine nachgebaute Schnittstelle), Videos mit mehreren Stunden Länge und Links zu YouTube oder Twitch.
+Getestet auf Linux mit zwei kurzen Testvideos (Deutsch und Englisch): Upload, Link-Import, Transkription, Vorschläge, Zuschnitt, Export, Texte, Pipeline, Einnahmen, Ziele, Beispieldaten und Mini-Fenster. **Noch nicht getestet:** die Start-Dateien auf echten Windows- und Mac-Rechnern (geprüft nur unter Linux, inklusive falscher Python-Versionen), die Auswertung mit einem echten Anthropic-Key (nur gegen eine nachgebaute Schnittstelle), Videos mit mehreren Stunden Länge und Links zu YouTube oder Twitch.
 
 ## Für Neugierige
 

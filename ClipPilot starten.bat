@@ -3,55 +3,27 @@ rem Windows: Diese Datei doppelklicken, um ClipPilot zu starten.
 title ClipPilot
 cd /d "%~dp0"
 
-set "PY="
-py -3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>nul
-if not errorlevel 1 set "PY=py -3"
-if defined PY goto have_python
-python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>nul
-if not errorlevel 1 set "PY=python"
-if defined PY goto have_python
+rem Passendes Python suchen (3.10 bis 3.14 - neuere Versionen werden noch nicht von allen Bausteinen unterstuetzt)
+for %%V in (3.13 3.12 3.14 3.11 3.10) do (
+  py -%%V -c "import sys" >nul 2>nul && ( py -%%V "ClipPilot starten.py" %* & exit /b )
+)
+python -c "import sys; sys.exit(0 if (3, 10) <= sys.version_info[:2] <= (3, 14) else 1)" >nul 2>nul
+if not errorlevel 1 ( python "ClipPilot starten.py" %* & exit /b )
 
 echo.
-echo Python fehlt auf diesem Rechner. ClipPilot braucht Python 3.10 oder neuer.
+echo Es fehlt ein passendes Python. ClipPilot braucht Python 3.10 bis 3.14.
 where winget >nul 2>nul
 if errorlevel 1 goto manual_python
-echo Ich installiere Python jetzt automatisch. Bitte eventuelle Nachfragen bestaetigen.
-winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements
+echo Ich installiere Python 3.13 jetzt automatisch. Bitte eventuelle Nachfragen bestaetigen.
+winget install -e --id Python.Python.3.13 --accept-package-agreements --accept-source-agreements
 echo.
 echo Fertig. Bitte dieses Fenster schliessen und "ClipPilot starten" noch einmal doppelklicken.
 pause
 exit /b 0
 
 :manual_python
-echo Bitte Python von https://www.python.org/downloads/ installieren.
+echo Bitte Python 3.13 von https://www.python.org/downloads/ installieren.
 echo Wichtig: beim Installieren den Haken bei "Add python.exe to PATH" setzen.
 echo Danach "ClipPilot starten" noch einmal doppelklicken.
-pause
-exit /b 1
-
-:have_python
-if exist ".venv\Scripts\python.exe" goto check_packages
-echo Erste Einrichtung - das dauert ein paar Minuten ...
-%PY% -m venv .venv
-if errorlevel 1 goto failed
-
-:check_packages
-".venv\Scripts\python.exe" -c "import fastapi, uvicorn, faster_whisper, cv2, anthropic, yt_dlp, imageio_ffmpeg, fontTools, PIL" >nul 2>nul
-if not errorlevel 1 goto run
-echo Installiere Bausteine - nur beim ersten Start oder nach einem Update ...
-".venv\Scripts\python.exe" -m pip install --quiet --upgrade pip
-".venv\Scripts\python.exe" -m pip install --quiet -r requirements.txt
-if errorlevel 1 goto failed
-
-:run
-".venv\Scripts\python.exe" -m clippilot
-echo.
-echo ClipPilot wurde beendet.
-pause
-exit /b 0
-
-:failed
-echo.
-echo Die Einrichtung ist fehlgeschlagen. Bitte Internetverbindung pruefen und noch einmal starten.
 pause
 exit /b 1
