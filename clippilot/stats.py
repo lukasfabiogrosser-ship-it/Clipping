@@ -121,7 +121,10 @@ def dashboard() -> dict:
     month_prefix = tkey[:7]
     month_earn = sum(v for d, v in led["by_day"].items() if d.startswith(month_prefix))
     dim = calendar.monthrange(today.year, today.month)[1]
-    soll = goal_month * today.day / dim if goal_month else 0
+    # Soll-Stand: anteilig ab dem Tag, an dem du in diesem Monat angefangen hast (nicht ab dem 1.)
+    first_log = min(led["views_day"]) if led["views_day"] else None
+    start_day = _d(first_log).day if first_log and first_log.startswith(month_prefix) else 1
+    soll = goal_month * (today.day - start_day + 1) / dim if goal_month else 0
 
     # Hochrechnung aus dem Schnitt der letzten 7 Tage (bei weniger Verlauf: seit dem ersten Eintrag)
     log_days = sorted(led["views_day"])
@@ -187,7 +190,7 @@ def dashboard() -> dict:
             warnings.append({"level": "red" if used >= 1 else "yellow",
                              "text": f"Budget von „{c['name']}“ {'ist aufgebraucht' if used >= 1 else f'zu {int(used * 100)} % verbraucht'}"})
     has_history = bool(log_days)
-    if goal_month and has_history and today.day >= 3:
+    if goal_month and has_history and (today - _d(log_days[0])).days >= 2:
         pace = month_earn / soll if soll else 1
         if pace < 0.6:
             warnings.append({"level": "red", "text": f"Monatsziel stark gefährdet ({_eur(soll - month_earn)} hinter Plan)"})
@@ -213,7 +216,7 @@ def dashboard() -> dict:
                  "prev_earnings": round(sum(s["earnings"] for s in prev7), 2),
                  "prev_views": sum(s["views"] for s in prev7), "prev_clips": sum(s["clips"] for s in prev7)},
         "month": {"earnings": round(month_earn, 2), "goal": goal_month, "soll": round(soll, 2),
-                  "day": today.day, "days": dim, "name": _MONTHS[today.month - 1]},
+                  "day": today.day, "days": dim, "name": _MONTHS[today.month - 1], "start_day": start_day},
         "projection": proj,
         "time_saved": time_saved(cfg),
         "quest": {"target": goal_day, "done": done_today},

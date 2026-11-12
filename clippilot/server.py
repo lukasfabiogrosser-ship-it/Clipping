@@ -280,7 +280,11 @@ def analyze(pid: int):
     p = get_project(pid)
     if p["status"] == "processing":
         fail(409, "Dieses Projekt wird gerade verarbeitet.")
-    if not (config.project_dir(pid) / "transcript.json").exists():
+    have_file = bool(p["filename"]) and (config.project_dir(pid) / p["filename"]).exists()
+    if p["source_kind"] == "link" and not have_file:
+        db.update("projects", pid, status="processing", error=None)       # Download ist gescheitert: noch einmal laden
+        jobs.enqueue("download", project_id=pid)
+    elif not (config.project_dir(pid) / "transcript.json").exists():
         db.update("projects", pid, status="processing", error=None)
         jobs.enqueue("process", project_id=pid)
     else:

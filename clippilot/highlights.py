@@ -190,7 +190,7 @@ def find_local(transcript: dict, loud: list[float], duration: float, cfg: dict) 
             proof = ws[cands[-1] if tag == "funny" else cands[0]]["text"]
         elif tag == "surprise":
             proof = ws[max(range(len(wf)), key=lambda k: wf[k]["numbers"])]["text"]
-        reason = f"{TAGS[tag]}: „{_shorten(proof, 12)}“"
+        reason = f"Schlüsselsatz: „{_shorten(proof, 12)}“"
         if w["loud"] and w["tag"] != "reaction":
             reason += f" Dazu eine laute Stelle bei {_fmt(w['peak_t'])}."
         out.append(_make(sents, w["i"], w["j"], duration, w["score"], w["tag"], reason,
@@ -286,10 +286,17 @@ def find_with_claude(transcript: dict, loud: list[float], duration: float, cfg: 
             j -= 1
         while j < n - 1 and sents[j]["end"] - sents[i]["start"] < mn * 0.6:   # zu kurz: hinten verlängern
             j += 1
+        while i > 0 and sents[j]["end"] - sents[i]["start"] < mn * 0.6:       # am Videoende: vorne verlängern
+            i -= 1
         out.append(_make(sents, i, j, duration, int(c.get("score", 50)), c.get("reason_tag", "hook"),
                          str(c.get("reason", "")), str(c.get("hook", "")), str(c.get("title", ""))))
     out.sort(key=lambda c: -c["score"])
-    return out[: int(cfg["num_suggestions"])]
+    kept = []                       # Vorschläge, die sich stark überschneiden, nur einmal behalten (den besseren)
+    for c in out:
+        if all(min(c["end"], k["end"]) - max(c["start"], k["start"]) <= 0.5 * min(c["end"] - c["start"], k["end"] - k["start"])
+               for k in kept):
+            kept.append(c)
+    return kept[: int(cfg["num_suggestions"])]
 
 
 def find(transcript: dict, loud: list[float], duration: float, cfg: dict) -> tuple[list[dict], str, str]:
