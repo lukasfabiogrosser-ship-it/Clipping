@@ -238,6 +238,7 @@ body.mini #hud .pop, body.mini #hud .tog { display: none; }
 .goalbar .bar { height: 10px; border-radius: 10px; }
 .goalbar .soll { position: absolute; top: -3px; height: 16px; width: 2px; background: var(--text); border-radius: 2px; }
 .goalbar .soll em { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font: normal 10.5px var(--body); color: var(--muted); white-space: nowrap; }
+.goalbar .soll.l em { left: -2px; transform: none; } .goalbar .soll.r em { left: auto; right: -2px; transform: none; }
 .proj { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .proj div { padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, .025); border: 1px solid var(--line); }
 .proj span { font-size: 11.5px; color: var(--muted); } .proj b { display: block; font: 600 18px var(--display); white-space: nowrap; }
@@ -332,9 +333,10 @@ a.pcard:hover { text-decoration: none; border-color: var(--line-2); transform: t
 .tpl { all: unset; cursor: pointer; box-sizing: border-box; border-radius: 10px; border: 1px solid var(--line); background: #070b12; padding: 10px 6px 7px; text-align: center; min-width: 0; }
 .tpl:hover { border-color: var(--line-2); } .tpl.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 18px rgba(79, 216, 255, .18); }
 .tpl .pv { height: 34px; display: grid; place-items: center; overflow: hidden; }
-.tpl .pv .cap { position: static; padding: 0; font-size: 13px; white-space: nowrap; }
-.tpl .pv .cap.pop, .tpl .pv .cap.box, .tpl .pv .cap.impact { -webkit-text-stroke-width: 3px; }
-.tpl .pv .cap.impact { font-size: 19px; } .tpl .pv .cap.clean { font-size: 13px; } .tpl .pv .cap.box { font-size: 12.5px; }
+.tpl .pv .cap { position: static; padding: 0; font-size: 11px; white-space: nowrap; }
+.tpl .pv .cap span { margin: 0 .2em; }
+.tpl .pv .cap.pop, .tpl .pv .cap.box, .tpl .pv .cap.impact { -webkit-text-stroke-width: 2.5px; }
+.tpl .pv .cap.impact { font-size: 16px; } .tpl .pv .cap.clean { font-size: 12px; } .tpl .pv .cap.box { font-size: 11px; }
 .tpl small { display: block; margin-top: 5px; font-size: 11px; color: var(--text-2); }
 .sect { padding: 14px 0; border-top: 1px solid var(--line); } .sect:first-child { border-top: 0; padding-top: 0; }
 .sect > .eyebrow { margin-bottom: 9px; display: flex; align-items: center; gap: 8px; }

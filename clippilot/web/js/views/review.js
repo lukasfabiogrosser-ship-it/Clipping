@@ -367,7 +367,7 @@ export async function render(root, args) {
             h("div", { class: "trimrow", style: { marginTop: "9px" } },
               h("div", { class: "side-a" }, h("span", { class: "muted" }, "Start"), nb("a", -0.5, "Start eine halbe Sekunde früher"), tStart, nb("a", 0.5, "Start eine halbe Sekunde später")),
               h("div", { class: "side-b" }, h("span", { class: "muted" }, "Ende"), nb("b", -0.5, "Ende eine halbe Sekunde früher"), tEnd, nb("b", 0.5, "Ende eine halbe Sekunde später"))),
-            c0.origin === "ai" ? h("div", { style: { marginTop: "8px" } }, h("button", { class: "btn sm ghost", onclick: () => { setRange(cur().ai_start, cur().ai_end, "b"); st.start = cur().ai_start; drawTrim(); commitRange(); video.currentTime = st.start; } }, icon("restart"), "Auf KI-Vorschlag zurücksetzen")) : null),
+            c0.origin === "ai" ? h("div", { style: { marginTop: "8px" } }, h("button", { class: "btn sm ghost", onclick: () => { st.start = cur().ai_start; st.end = cur().ai_end; drawTrim(); commitRange(); video.currentTime = st.start; } }, icon("restart"), "Auf KI-Vorschlag zurücksetzen")) : null),
           h("div", { class: "sect" },
             h("div", { class: "eyebrow" }, "Viral-Score"),
             h("div", { class: "row" }, scoreIn, scoreVal), scoreNote),

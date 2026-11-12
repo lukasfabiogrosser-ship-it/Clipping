@@ -27,9 +27,9 @@ export function projectionBlock(d) {
   if (!p) return h("div", { class: "note box" }, "Sobald du Views bei einem geposteten Clip einträgst, rechne ich hier hoch, was bei deinem Tempo pro Woche, Monat und Jahr herauskommt.");
   return h("div", { class: "col" },
     h("div", { class: "proj" },
-      h("div", {}, h("span", {}, "diese Woche"), h("b", {}, eur(p.week))),
-      h("div", {}, h("span", {}, "im Monat"), h("b", {}, eur(p.month))),
-      h("div", {}, h("span", {}, "im Jahr"), h("b", {}, eur(p.year)))),
+      h("div", {}, h("span", {}, "pro Woche"), h("b", {}, eur(p.week))),
+      h("div", {}, h("span", {}, "pro Monat"), h("b", {}, eur(p.month))),
+      h("div", {}, h("span", {}, "pro Jahr"), h("b", {}, eur(p.year)))),
     h("div", { class: "note" }, `Bei deinem aktuellen Tempo: ${eur(p.per_day, true)} pro Tag (Schnitt der letzten ${p.basis_days === 1 ? "24 Stunden" : p.basis_days + " Tage"}).`));
 }
 export function timeSavedBlock(t) {
@@ -83,8 +83,8 @@ export async function render(root) {
             h("div", { class: "num" }, eur(m.earnings), h("small", {}, m.goal ? ` von ${eur(m.goal)}` : "")),
             m.goal ? h("div", { class: "goalbar", style: { marginTop: "14px" } },
               h("div", { class: "bar " + barCls }, h("i", { style: { width: Math.min(100, pct * 100) + "%" } })),
-              h("div", { class: "soll", style: { left: Math.min(100, m.soll / m.goal * 100) + "%" } }, h("em", {}, `Soll heute ${eur(m.soll)}`))) : h("div", { class: "note" }, h("a", { href: "#/ziele" }, "Monatsziel festlegen")),
-            m.goal && m.start_day > 1 ? h("div", { class: "note" }, `Soll gerechnet ab deinem Start am ${m.start_day}. ${m.name}.`) : null),
+              h("div", { class: "soll" + (m.soll / m.goal < 0.14 ? " l" : m.soll / m.goal > 0.86 ? " r" : ""), style: { left: Math.min(100, m.soll / m.goal * 100) + "%" } }, h("em", {}, `Soll heute ${eur(m.soll)}`))) : h("div", { class: "note" }, h("a", { href: "#/ziele" }, "Monatsziel festlegen")),
+            m.goal && m.start_day > 1 ? h("div", { class: "note", style: { marginTop: "8px" } }, `Soll gerechnet ab deinem Start am ${m.start_day}. ${m.name}.`) : null),
           h("section", { class: "panel" },
             h("div", { class: "head" }, icon("chart"), h("h2", {}, "Hochrechnung")),
             projectionBlock(d)),
