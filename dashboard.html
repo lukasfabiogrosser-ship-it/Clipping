@@ -6,6 +6,7 @@
 <title>Clipping Dashboard</title>
 <style>
   :root {
+    color-scheme: dark;
     --page: #0d0d0d;  --card: #1a1a19;  --line: rgba(255,255,255,.08);
     --text: #f0efec;  --text-2: #c3c2b7; --muted: #898781;
     --accent: #3987e5; --accent-soft: rgba(57,135,229,.14);
@@ -504,7 +505,6 @@ function zeichneKopf(D, k, w) {
   $("#firma").textContent = D.firma?.name || "Mein Unternehmen";
   $("#firmaSub").textContent = D.firma?.untertitel || "";
   $("#beispiel").hidden = !D.beispieldaten;
-  document.title = `${D.firma?.name || "Dashboard"} – Dashboard`;
 
   const ueberfaellig = k.todos.filter(t => tageBis(t.faellig) < 0).length;
   const rot = w.filter(x => x.stufe === "rot").length + ueberfaellig;
